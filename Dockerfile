@@ -14,8 +14,7 @@ RUN apt-get install -y python3-pip python3-dev \
 RUN pip install pipenv
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8
-RUN pipenv install
-RUN echo "source /etc/profile.d/tabcmd.sh" >> ~/.bashrc
+ENV PATH ${PATH}:/opt/tableau/tabcmd/bin
 RUN mkdir pdfs
-ENTRYPOINT /bin/bash
+RUN pipenv install
 CMD ["pipenv", "run", "python", "main.py"]
