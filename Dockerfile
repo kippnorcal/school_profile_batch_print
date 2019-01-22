@@ -1,6 +1,5 @@
 FROM python:3
 WORKDIR /app
-COPY ./*.py /app/
 COPY ./*.deb /app/
 COPY ./.env /app/
 COPY ./Pipfile* /app/
@@ -16,4 +15,6 @@ ENV PATH ${PATH}:/opt/tableau/tabcmd/bin
 RUN mkdir output
 RUN pipenv install
 RUN yes | dpkg -i msodbcsql17_17.2.0.1-1_amd64.deb
-CMD ["pipenv", "run", "python", "main.py"]
+COPY ./*.py /app/
+ENTRYPOINT ["pipenv", "run", "python", "main.py"]
+CMD []
