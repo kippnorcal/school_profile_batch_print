@@ -9,6 +9,7 @@ import pandas as pd
 import pyodbc
 from sqlalchemy import create_engine
 from PyPDF2 import PdfFileWriter, PdfFileReader
+from tenacity import retry, stop_after_attempt, wait_exponential
 from timer import elapsed
 
 logging.basicConfig(
@@ -47,8 +48,10 @@ def tab_logout():
     subprocess.run(["tabcmd", "logout"])
 
 @elapsed
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
 def tab_print(view, destination):
     subprocess.run(["tabcmd", "get", view, "-f", destination])
+    return destination
 
 @elapsed
 def merge_pdfs(output, pdfs):
@@ -59,6 +62,7 @@ def merge_pdfs(output, pdfs):
             pdf_writer.addPage(pdf_reader.getPage(page))
     with open(output, 'wb') as fh:
         pdf_writer.write(fh)
+    return len(pdfs)
 
 def cleanup(files):
     for f in files:
