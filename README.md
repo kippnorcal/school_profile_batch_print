@@ -4,35 +4,42 @@ Uses tabcmd to batch print PDFs of the Student Profile Report for an entire scho
 
 ## Dependencies:
 
-* Tabcmd
 * Python3.7
-* Pipenv
-* Docker
+* [Pipenv](https://pipenv.readthedocs.io/en/latest/)
+* [Docker](https://www.docker.com/)
+* [Tabcmd](https://onlinehelp.tableau.com/current/server/en-us/tabcmd.htm)
+* [MS SQL ODBC drivers](https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-2017)
 
 ## Getting Started
 
 ### Setup environment
 
-1. Install Pipenv
+1. Clone this repo
+
+```
+$ git clone student_profile_batch_printer
+```
+
+2. Install Pipenv
 
 ```
 $ pip install pipenv
 $ pipenv install
 ```
 
-2. Install Docker
+3. Install Docker
 
 * **Mac**: [https://docs.docker.com/docker-for-mac/install/](https://docs.docker.com/docker-for-mac/install/)
 * **Linux**: [https://docs.docker.com/install/linux/docker-ce/debian/](https://docs.docker.com/install/linux/docker-ce/debian/)
 * **Windows**: [https://docs.docker.com/docker-for-windows/install/](https://docs.docker.com/docker-for-windows/install/)
 
-3. Build Docker Image
+4. Build Docker Image
 
 ```
 $ docker build -t tab_pdf .
 ```
 
-4. Create .env file with project secrets
+5. Create .env file with project secrets
 Create a .env file in the root of the project that has the following variables:
 
 ```
