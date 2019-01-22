@@ -2,3 +2,4 @@
 .DS_Store
 output/*.*
 !output/.gitkeep
+__pycache__/
