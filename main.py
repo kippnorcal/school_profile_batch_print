@@ -35,7 +35,6 @@ params = urllib.parse.quote_plus(f"DRIVER={driver};SERVER={host};DATABASE={db};U
 engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
 
 #TODO: Add retry logic in case of fails to tabcmd get calls
-#TODO: Add pdf merge at end to combine pdfs into single printable file
 #TODO: Add runtime arg for passing school or grades as filter for query
 #TODO: Add step for uploading to Google Drive
 #TODO: Add step for notifying slack channel that file is complete
