@@ -28,7 +28,6 @@ logging.basicConfig(
 )
 
 #TODO: Add step for uploading to Google Drive
-#TODO: Add step for notifying slack channel that file is complete
 
 def tab_login():
     server = os.getenv("TABLEAU_SERVER")
