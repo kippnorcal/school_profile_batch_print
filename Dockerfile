@@ -3,6 +3,8 @@ WORKDIR /app
 COPY ./*.deb /app/
 COPY ./.env /app/
 COPY ./Pipfile* /app/
+COPY ./settings.yaml /app/
+COPY ./credentials.json /app/
 RUN dpkg -i tableau-tabcmd-10-5-11_all.deb
 RUN apt-get update
 RUN apt-get install -y apt-utils
