@@ -12,9 +12,13 @@ from sqlalchemy import create_engine
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from tenacity import retry, stop_after_attempt, wait_exponential
 from timer import elapsed
+from mailer import notify
 
 SCHOOL = sys.argv[1]
-TOP_N = sys.argv[2]
+if len(sys.argv) > 2:
+    TOP_N = sys.argv[2]
+else:
+    TOP_N = None
 
 logging.basicConfig(
     filename="./output/app.log",
@@ -93,6 +97,7 @@ def main():
         today = str(date.today().strftime('%Y%m%d'))
         merge_pdfs(f'./output/{SCHOOL}_{today}.pdf', pdfs)
         cleanup(pdfs)
+        notify(SCHOOL, len(pdfs))
     except Exception as e:
         logging.critical(e)
     finally:
