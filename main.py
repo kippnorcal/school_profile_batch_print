@@ -11,6 +11,7 @@ from datetime import date
 from sqlalchemy import create_engine
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from tenacity import retry, stop_after_attempt, wait_exponential
+from drive import uploader
 from timer import elapsed
 from mailer import notify
 
@@ -103,6 +104,11 @@ def main():
             today = str(date.today().strftime('%Y%m%d'))
             merge_pdfs(f'./output/{SCHOOL}_{grade}_{today}.pdf', pdfs)
             cleanup(pdfs)
+
+        final_pdfs = glob.glob(f"./output/{SCHOOL}*.pdf")
+        for pdf in final_pdfs:
+            title = os.path.basename(pdf)
+            uploader(title, pdf)
         notify(SCHOOL, len(all_students))
     except Exception as e:
         logging.critical(e)
