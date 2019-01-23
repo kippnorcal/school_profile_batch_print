@@ -83,11 +83,11 @@ def sql_query(school, top_n=None):
 def main():
     try:
         all_students = sql_query(SCHOOL, TOP_N)
-        all_students.sort(columns=['grade_numeric'], inplace=True)
+        all_students.sort_values(by='grade_numeric', axis=1, inplace=True)
         grades = all_students['grade'].unique().tolist()
+        tab_login()
         for grade in grades:
             students = all_students.loc[all_students.grade==grade]
-            tab_login()
             for index, row in students.iterrows():
                 student_id = row['studentID']
                 filename = row['filename']
