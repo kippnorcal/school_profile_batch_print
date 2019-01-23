@@ -82,20 +82,25 @@ def sql_query(school, top_n=None):
 
 def main():
     try:
-        students = sql_query(SCHOOL, TOP_N)
-        tab_login()
-        for index, row in students.iterrows():
-            school = row['school']
-            student_id = row['studentID']
-            filename = row['filename']
-            destination = f"./output/{filename}.pdf"
-            view =  f"/views/StudentProfileADMINMassPrinting/PDFGenerator.pdf?StudentID={student_id}"
-            tab_print(view, destination)
-        pdfs = glob.glob("./output/*.pdf")
-        pdfs.sort()
-        today = str(date.today().strftime('%Y%m%d'))
-        merge_pdfs(f'./output/{SCHOOL}_{today}.pdf', pdfs)
-        cleanup(pdfs)
+        all_students = sql_query(SCHOOL, TOP_N)
+        all_students.sort(columns=['grade_numeric'], inplace=True)
+        grades = all_students['grade'].unique().tolist()
+        for grade in grades:
+            students = all_students.loc[all_students.grade==grade]
+            tab_login()
+            for index, row in students.iterrows():
+                student_id = row['studentID']
+                filename = row['filename']
+                destination = f"./output/{filename}.pdf"
+                view =  f"/views/StudentProfileADMINMassPrinting/PDFGenerator.pdf?StudentID={student_id}"
+                tab_print(view, destination)
+            pdfs = glob.glob("./output/*.pdf")
+            pdfs.sort()
+            if len(pdfs) != students.count():
+                raise ValueError('Number of PDFs created does not match expected number of students.')
+            today = str(date.today().strftime('%Y%m%d'))
+            merge_pdfs(f'./output/{grade}_{SCHOOL}_{today}.pdf', pdfs)
+            cleanup(pdfs)
         notify(SCHOOL, len(pdfs))
     except Exception as e:
         logging.critical(e)
