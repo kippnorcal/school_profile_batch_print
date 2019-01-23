@@ -9,6 +9,7 @@ Uses tabcmd to batch print PDFs of the Student Profile Report for an entire scho
 * [Docker](https://www.docker.com/)
 * [Tabcmd](https://onlinehelp.tableau.com/current/server/en-us/tabcmd.htm)
 * [MS SQL ODBC drivers](https://docs.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-2017)
+* [Google Drive API](https://console.developers.google.com/iam-admin/projects) (see setup directions [here](https://pythonhosted.org/PyDrive/quickstart.html))
 
 ## Getting Started
 
@@ -55,6 +56,9 @@ DB_QUERY=""
 GMAIL_USER=""
 GMAIL_PWD=""
 SLACK_EMAIL=""
+OAUTH_CLIENT_ID=""
+OAUTH_CLIENT_SECRET=""
+GDRIVE_FOLDER=""
 ```
 
 ### Running the Job
