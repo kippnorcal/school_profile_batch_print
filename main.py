@@ -83,7 +83,7 @@ def sql_query(school, top_n=None):
 def main():
     try:
         all_students = sql_query(SCHOOL, TOP_N)
-        all_students.sort_values(by='grade_numeric', axis=1, inplace=True)
+        all_students.sort_values(by=['grade_numeric'], inplace=True)
         grades = all_students['grade'].unique().tolist()
         tab_login()
         for grade in grades:
@@ -94,16 +94,19 @@ def main():
                 destination = f"./output/{filename}.pdf"
                 view =  f"/views/StudentProfileADMINMassPrinting/PDFGenerator.pdf?StudentID={student_id}"
                 tab_print(view, destination)
-            pdfs = glob.glob("./output/*.pdf")
+            pdfs = glob.glob(f"./output/{grade}*.pdf")
             pdfs.sort()
-            if len(pdfs) != students.count():
-                raise ValueError('Number of PDFs created does not match expected number of students.')
+            pdf_count = len(pdfs)
+            student_count = len(students)
+            if pdf_count != student_count:
+                raise ValueError(f'Number of PDFs created ({pdf_count}) does not match expected number of students ({student_count}) for grade {grade}.')
             today = str(date.today().strftime('%Y%m%d'))
-            merge_pdfs(f'./output/{grade}_{SCHOOL}_{today}.pdf', pdfs)
+            merge_pdfs(f'./output/{SCHOOL}_{grade}_{today}.pdf', pdfs)
             cleanup(pdfs)
-        notify(SCHOOL, len(pdfs))
+        notify(SCHOOL, len(all_students))
     except Exception as e:
         logging.critical(e)
+        notify(SCHOOL, len(all_students), True, e)
     finally:
         tab_logout()
 
