@@ -52,12 +52,23 @@ DB=""
 DB_USER=""
 DB_PWD=""
 DB_QUERY=""
+GMAIL_USER=""
+GMAIL_PWD=""
+SLACK_EMAIL=""
 ```
 
 ### Running the Job
 
 Run in detached mode (runs as background process) with the output folder mapped to the host directory.
 
+Run for entire school (production use):
+
 ```
-$ docker run -d -v ${PWD}/output:/app/output --name=tab_pdf tab_pdf
+$ docker run -d -v ${PWD}/output:/app/output --name=tab_pdf tab_pdf "School Name"
+```
+
+Run for a subset of records at a school (testing purposes)
+
+```
+$ docker run -d -v ${PWD}/output:/app/output --name=tab_pdf tab_pdf "School Name" "10"
 ```
