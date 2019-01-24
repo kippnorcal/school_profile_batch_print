@@ -8,6 +8,7 @@ sqlalchemy = "*"
 pyodbc = "*"
 pandas = "*"
 "pypdf2" = "*"
+tenacity = "*"
 
 [dev-packages]
 

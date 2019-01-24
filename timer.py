@@ -2,7 +2,7 @@ import time
 import logging
 
 
-def _timer_message(func, elapsed):
+def _timer_message(func, elapsed, value):
     """Private function for formatting log message so the correct
     unit is displayed based on the elapsed seconds.
 
@@ -18,7 +18,7 @@ def _timer_message(func, elapsed):
         elapsed = round(elapsed / 60, 2)
         unit = "minutes"
 
-    return f"{func.__name__} completed in {elapsed} {unit}."
+    return f"{func.__name__} completed {value} in {elapsed} {unit}."
 
 
 def _calc_elapsed(end, start):
@@ -43,9 +43,9 @@ def elapsed(func):
 
     def wrapper(*args):
         start = time.time()
-        func(*args)
+        value = func(*args)
         end = time.time()
         elapsed = _calc_elapsed(end, start)
-        logging.info(_timer_message(func, elapsed))
+        logging.info(_timer_message(func, elapsed, value))
 
     return wrapper

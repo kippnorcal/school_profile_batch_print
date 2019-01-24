@@ -9,6 +9,7 @@ import pandas as pd
 import pyodbc
 from sqlalchemy import create_engine
 from PyPDF2 import PdfFileWriter, PdfFileReader
+from tenacity import retry, stop_after_attempt, wait_exponential
 from timer import elapsed
 
 logging.basicConfig(
@@ -34,7 +35,6 @@ query = os.getenv("DB_QUERY")
 params = urllib.parse.quote_plus(f"DRIVER={driver};SERVER={host};DATABASE={db};UID={user};PWD={pwd}")
 engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
 
-#TODO: Add retry logic in case of fails to tabcmd get calls
 #TODO: Add runtime arg for passing school or grades as filter for query
 #TODO: Add step for uploading to Google Drive
 #TODO: Add step for notifying slack channel that file is complete
@@ -47,8 +47,10 @@ def tab_logout():
     subprocess.run(["tabcmd", "logout"])
 
 @elapsed
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
 def tab_print(view, destination):
     subprocess.run(["tabcmd", "get", view, "-f", destination])
+    return destination
 
 @elapsed
 def merge_pdfs(output, pdfs):
@@ -59,6 +61,7 @@ def merge_pdfs(output, pdfs):
             pdf_writer.addPage(pdf_reader.getPage(page))
     with open(output, 'wb') as fh:
         pdf_writer.write(fh)
+    return len(pdfs)
 
 def cleanup(files):
     for f in files:
