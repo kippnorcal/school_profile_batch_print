@@ -7,10 +7,14 @@ import sys
 import urllib
 import pandas as pd
 import pyodbc
+from datetime import date
 from sqlalchemy import create_engine
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from tenacity import retry, stop_after_attempt, wait_exponential
 from timer import elapsed
+
+SCHOOL = sys.argv[1]
+TOP_N = sys.argv[2]
 
 logging.basicConfig(
     filename="./output/app.log",
@@ -19,27 +23,14 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %I:%M:%S%p",
 )
 
-tab_server = os.getenv("TABLEAU_SERVER")
-tab_site = os.getenv("TABLEAU_SITE")
-tab_user = os.getenv("TABLEAU_USER")
-tab_password = os.getenv("TABLEAU_PWD")
-
-drivers = pyodbc.drivers()
-driver = '{' + drivers[0] + '}'
-host = os.getenv("DB_SERVER")
-db = os.getenv("DB")
-user = os.getenv("DB_USER")
-pwd = os.getenv("DB_PWD")
-query = os.getenv("DB_QUERY")
-
-params = urllib.parse.quote_plus(f"DRIVER={driver};SERVER={host};DATABASE={db};UID={user};PWD={pwd}")
-engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
-
-#TODO: Add runtime arg for passing school or grades as filter for query
 #TODO: Add step for uploading to Google Drive
 #TODO: Add step for notifying slack channel that file is complete
 
-def tab_login(server, site, user, pwd):
+def tab_login():
+    server = os.getenv("TABLEAU_SERVER")
+    site = os.getenv("TABLEAU_SITE")
+    user = os.getenv("TABLEAU_USER")
+    pwd = os.getenv("TABLEAU_PWD")
     subprocess.run(["tabcmd", "--accepteula"])
     subprocess.run(["tabcmd", "login", "-s", server, "-t", site, "-u", user, "-p", pwd])
 
@@ -67,11 +58,30 @@ def cleanup(files):
     for f in files:
         os.remove(f)
 
+def sql_query(school, top_n=None):
+    drivers = pyodbc.drivers()
+    driver = '{' + drivers[0] + '}'
+    host = os.getenv("DB_SERVER")
+    db = os.getenv("DB")
+    user = os.getenv("DB_USER")
+    pwd = os.getenv("DB_PWD")
+    table = os.getenv("DB_OBJECT")
+
+    params = urllib.parse.quote_plus(f"DRIVER={driver};SERVER={host};DATABASE={db};UID={user};PWD={pwd}")
+    engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
+    if top_n:
+        query = f"SELECT TOP {top_n} * FROM {table} ('{school}')"
+    else:
+        query = f"SELECT * FROM {table} ('{school}')"
+    df = pd.read_sql(query, engine)
+    return df
+
+
 def main():
     try:
-        df = pd.read_sql(query, engine)
-        tab_login(tab_server, tab_site, tab_user, tab_password)
-        for index, row in df.iterrows():
+        students = sql_query(SCHOOL, TOP_N)
+        tab_login()
+        for index, row in students.iterrows():
             school = row['school']
             student_id = row['studentID']
             filename = row['filename']
@@ -80,7 +90,8 @@ def main():
             tab_print(view, destination)
         pdfs = glob.glob("./output/*.pdf")
         pdfs.sort()
-        merge_pdfs('./output/combined.pdf', pdfs)
+        today = str(date.today().strftime('%Y%m%d'))
+        merge_pdfs(f'./output/{SCHOOL}_{today}.pdf', pdfs)
         cleanup(pdfs)
     except Exception as e:
         logging.critical(e)
