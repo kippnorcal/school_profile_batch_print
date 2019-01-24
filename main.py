@@ -11,6 +11,7 @@ from datetime import date
 from sqlalchemy import create_engine
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from tenacity import retry, stop_after_attempt, wait_exponential
+from drive import uploader
 from timer import elapsed
 from mailer import notify
 
@@ -101,8 +102,11 @@ def main():
             if pdf_count != student_count:
                 raise ValueError(f'Number of PDFs created ({pdf_count}) does not match expected number of students ({student_count}) for grade {grade}.')
             today = str(date.today().strftime('%Y%m%d'))
-            merge_pdfs(f'./output/{SCHOOL}_{grade}_{today}.pdf', pdfs)
+            merged_name = f"{SCHOOL}_{grade}_{today}.pdf"
+            merged_path = f"./output/{merged_name}"
+            merge_pdfs(merged_path, pdfs)
             cleanup(pdfs)
+            uploader(merged_name, merged_path)
         notify(SCHOOL, len(all_students))
     except Exception as e:
         logging.critical(e)

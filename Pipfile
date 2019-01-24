@@ -9,6 +9,7 @@ pyodbc = "*"
 pandas = "*"
 "pypdf2" = "*"
 tenacity = "*"
+pydrive = "*"
 
 [dev-packages]
 
