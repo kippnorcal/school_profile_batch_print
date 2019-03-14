@@ -28,8 +28,6 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %I:%M:%S%p",
 )
 
-#TODO: Add step for uploading to Google Drive
-
 def tab_login():
     server = os.getenv("TABLEAU_SERVER")
     site = os.getenv("TABLEAU_SITE")

@@ -76,3 +76,20 @@ Run for a subset of records at a school (testing purposes)
 ```
 $ docker run -d -v ${PWD}/output:/app/output --name=tab_pdf tab_pdf "School Name" "10"
 ```
+
+### School Names
+In order to run the job, you need to pass a school name in the exact format the SQL query expects. Here is a list of possible school names:
+
+* Bayview
+* Bridge
+* Excelencia
+* Heartwood
+* Heritage
+* King
+* Navigate
+* Prize
+* San Francisco Bay
+* San Francisco College Prep
+* San Jose Collegiate
+* Summit
+* Valiant
