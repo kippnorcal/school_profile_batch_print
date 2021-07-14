@@ -4,14 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sqlalchemy = "*"
-pyodbc = "*"
-pandas = "*"
-"pypdf2" = "*"
 tenacity = "*"
 pydrive = "*"
+
+tableauserverclient = "*"
+sqlalchemy = "==1.3.24"
+sqlsorcery = {extras = ["mssql"], version = "*"}
+"pypdf2" = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.7"
+python_version = "3"
