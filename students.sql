@@ -1,4 +1,4 @@
-SELECT TOP 10
+SELECT
       lks.SchoolName_Tableau AS SchoolName
     , cs.CurrGradeLevel
     , cs.student_number
@@ -6,8 +6,7 @@ SELECT TOP 10
 FROM custom.vw_enrollment_course_section_ps cs
 LEFT JOIN custom.lkSchools lks
     ON cs.schoolid_record = lks.SystemSchoolID
-WHERE cs.Schoolyear4digit = 2021
--- WHERE cs.Schoolyear4digit = custom.fn_SchoolYear4Digit (GETDATE())
+WHERE cs.Schoolyear4digit = custom.fn_SchoolYear4Digit (GETDATE())
     AND cs.seq_latestEnrollment = 1
     AND cs.subject = 'HR'
     AND lks.SchoolName_Tableau = ?
