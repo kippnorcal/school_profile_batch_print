@@ -1,19 +1,14 @@
-FROM python:3
-WORKDIR /app
-COPY ./*.deb /app/
-RUN dpkg -i tableau-tabcmd-10-5-11_all.deb
+FROM python:3.8
+WORKDIR /code
+# SQL dependencies
+RUN wget https://packages.microsoft.com/debian/9/prod/pool/main/m/msodbcsql17/msodbcsql17_17.6.1.1-1_amd64.deb
 RUN apt-get update
 RUN apt-get install -y apt-utils
-RUN apt-get install -y default-jre
 RUN apt-get install -y unixodbc unixodbc-dev
+RUN yes | dpkg -i msodbcsql17_17.6.1.1-1_amd64.deb
+# Python dependencies
 RUN pip install pipenv
-ENV LC_ALL C.UTF-8
-ENV LANG C.UTF-8
-ENV PATH ${PATH}:/opt/tableau/tabcmd/bin
-RUN mkdir output
-COPY ./Pipfile* /app/
-RUN pipenv install
-RUN yes | dpkg -i msodbcsql17_17.2.0.1-1_amd64.deb
+COPY Pipfile .
+RUN pipenv install --skip-lock
 COPY ./ .
 ENTRYPOINT ["pipenv", "run", "python", "main.py"]
-# CMD []

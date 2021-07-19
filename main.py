@@ -9,8 +9,10 @@ import logging
 from datetime import date
 from gdrive import uploader
 import sys
+from mailer import Mailer
+import traceback
 
-# TODO: update mailer to use Mailgun
+
 def set_logging():
     """Configure logging level and outputs"""
     logging.basicConfig(
@@ -146,4 +148,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        error_message = None
+    except Exception as e:
+        logging.exception(e)
+        error_message = traceback.format_exc()
+    if int(getenv("ENABLE_MAILER", default=0)):
+        Mailer("Student Profile Batch Printer").notify(error_message=error_message)
