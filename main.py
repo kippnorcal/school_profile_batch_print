@@ -1,116 +1,130 @@
-import fnmatch
-import glob
-import logging
-import os
-import subprocess
-import sys
-import urllib
+import tableauserverclient as TSC
+from os import getenv, remove
+from glob import glob
+from sqlsorcery import MSSQL
 import pandas as pd
-import pyodbc
-from datetime import date
-from sqlalchemy import create_engine
 from PyPDF2 import PdfFileWriter, PdfFileReader
-from tenacity import retry, stop_after_attempt, wait_exponential
-from drive import uploader
-from timer import elapsed
-from mailer import notify
+from argparse import ArgumentParser
+import logging
+from datetime import date
 
-SCHOOL = sys.argv[1]
-if len(sys.argv) > 2:
-    TOP_N = sys.argv[2]
-else:
-    TOP_N = None
+# TODO: update mailer to use Mailgun
 
-logging.basicConfig(
-    filename="./output/app.log",
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %I:%M:%S%p",
-)
 
-def tab_login():
-    server = os.getenv("TABLEAU_SERVER")
-    site = os.getenv("TABLEAU_SITE")
-    user = os.getenv("TABLEAU_USER")
-    pwd = os.getenv("TABLEAU_PWD")
-    subprocess.run(["tabcmd", "--accepteula"])
-    subprocess.run(["tabcmd", "login", "-s", server, "-t", site, "-u", user, "-p", pwd])
+class MissingSchoolArgument(Exception):
+    def __init__(self):
+        message = "You must provide a school name argument. For help use: --help"
+        super().__init__(message)
 
-def tab_logout():
-    subprocess.run(["tabcmd", "logout"])
 
-@elapsed
-@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
-def tab_print(view, destination):
-    subprocess.run(["tabcmd", "get", view, "-f", destination])
-    return destination
+def get_args():
+    parser = ArgumentParser(description="Query by school and/or grade")
+    parser.add_argument(
+        "--school", help="Enter required school name (see README)", type=str
+    )
+    parser.add_argument("--grade", help="Filter by relevant grade level", type=int)
+    args, _ = parser.parse_known_args()
+    if not args.school:
+        raise MissingSchoolArgument
+    return args
 
-@elapsed
-def merge_pdfs(output, pdfs):
+
+class SQLPatch(MSSQL):
+    def query_from_file(self, filename, params=None):
+        """Monkeypatch missing params from SQLSorcery method"""
+        sql_statement = self._read_sql_file(filename)
+        df = pd.read_sql_query(sql_statement, self.engine, params=params)
+        return df
+
+
+class Tableau:
+    def __init__(self):
+        TABLEAU_USER = getenv("TABLEAU_USER")
+        TABLEAU_PWD = getenv("TABLEAU_PWD")
+        TABLEAU_SITENAME = getenv("TABLEAU_SITENAME")
+        TABLEAU_SERVER_URL = getenv("TABLEAU_SERVER_URL")
+        self.tableau_auth = TSC.TableauAuth(TABLEAU_USER, TABLEAU_PWD, TABLEAU_SITENAME)
+        self.server = TSC.Server(TABLEAU_SERVER_URL)
+        self.domain = getenv("TABLEAU_DOMAIN")
+        self.server.version = "2.8"
+
+    def download_pdf(self, student_id, grade, name):
+        view_name = "PDF Generator"
+        with self.server.auth.sign_in(self.tableau_auth):
+            req_option = TSC.RequestOptions()
+            req_option.filter.add(
+                TSC.Filter(
+                    TSC.RequestOptions.Field.Name,
+                    TSC.RequestOptions.Operator.Equals,
+                    view_name,
+                )
+            )
+            all_views, pagination_item = self.server.views.get(req_option)
+            if not all_views:
+                raise LookupError("View with the specified name was not found.")
+            view = all_views[0]
+
+            pdf_req_option = TSC.PDFRequestOptions(
+                orientation=TSC.PDFRequestOptions.Orientation.Portrait,
+                maxage=1,
+                page_type=TSC.PDFRequestOptions.PageType.Letter,
+            )
+
+            pdf_req_option.vf("StudentID", student_id)
+            self.server.views.populate_pdf(view, pdf_req_option)
+
+            filename = f"output/profile_{grade}_{name}_{student_id}.pdf"
+            with open(filename, "wb") as pdf_file:
+                pdf_file.write(view.pdf)
+
+
+def get_students(school_name, grade=None):
+    sql = SQLPatch()
+    if grade:
+        df = sql.query_from_file("students_grade.sql", params=[school_name, grade])
+    else:
+        df = sql.query_from_file("students.sql", params=[school_name])
+    return df
+
+
+def merge_pdfs(school_name, pdfs):
+    today = str(date.today().strftime("%Y%m%d"))
+    school = school_name.replace(" ", "_").lower()
+    filename = f"output/{school}_profile_{today}.pdf"
     pdf_writer = PdfFileWriter()
     for pdf in pdfs:
         pdf_reader = PdfFileReader(pdf)
         for page in range(pdf_reader.getNumPages()):
             pdf_writer.addPage(pdf_reader.getPage(page))
-    with open(output, 'wb') as fh:
+
+    with open(filename, "wb") as fh:
         pdf_writer.write(fh)
+
     return len(pdfs)
+
 
 def cleanup(files):
     for f in files:
-        os.remove(f)
+        remove(f)
 
-def sql_query(school, top_n=None):
-    drivers = pyodbc.drivers()
-    driver = '{' + drivers[0] + '}'
-    host = os.getenv("DB_SERVER")
-    db = os.getenv("DB")
-    user = os.getenv("DB_USER")
-    pwd = os.getenv("DB_PWD")
-    table = os.getenv("DB_OBJECT")
 
-    params = urllib.parse.quote_plus(f"DRIVER={driver};SERVER={host};DATABASE={db};UID={user};PWD={pwd}")
-    engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
-    if top_n:
-        query = f"SELECT TOP {top_n} * FROM {table} ('{school}')"
-    else:
-        query = f"SELECT * FROM {table} ('{school}')"
-    df = pd.read_sql(query, engine)
-    return df
+def download_all_pdfs(students):
+    total = len(students)
+    students = students.to_dict("index")
+    for key, row in students.items():
+        school, grade, student_number, name = row.values()
+        Tableau().download_pdf(student_number, grade, name)
+        print(f"Saved {name} ({student_number}) profile to pdf {key+1}/{total}")
 
 
 def main():
-    try:
-        all_students = sql_query(SCHOOL, TOP_N)
-        all_students.sort_values(by=['grade_numeric'], inplace=True)
-        grades = all_students['grade'].unique().tolist()
-        tab_login()
-        for grade in grades:
-            students = all_students.loc[all_students.grade==grade]
-            for index, row in students.iterrows():
-                student_id = row['studentID']
-                filename = row['filename']
-                destination = f"./output/{filename}.pdf"
-                view =  f"/views/StudentProfileADMINMassPrinting/PDFGenerator.pdf?StudentID={student_id}"
-                tab_print(view, destination)
-            pdfs = glob.glob(f"./output/{grade}*.pdf")
-            pdfs.sort()
-            pdf_count = len(pdfs)
-            student_count = len(students)
-            if pdf_count != student_count:
-                raise ValueError(f'Number of PDFs created ({pdf_count}) does not match expected number of students ({student_count}) for grade {grade}.')
-            today = str(date.today().strftime('%Y%m%d'))
-            merged_name = f"{SCHOOL}_{grade}_{today}.pdf"
-            merged_path = f"./output/{merged_name}"
-            merge_pdfs(merged_path, pdfs)
-            cleanup(pdfs)
-            uploader(merged_name, merged_path)
-        notify(SCHOOL, len(all_students))
-    except Exception as e:
-        logging.critical(e)
-        notify(SCHOOL, len(all_students), True, e)
-    finally:
-        tab_logout()
+    ARGS = get_args()
+    students = get_students(ARGS.school, ARGS.grade)
+    download_all_pdfs(students)
+    pdfs = glob("output/*.pdf")
+    pdfs.sort()
+    merge_pdfs(ARGS.school, pdfs)
+    cleanup(pdfs)
 
 
 if __name__ == "__main__":
