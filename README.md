@@ -41,23 +41,30 @@ $ docker build -t tab_pdf .
 Create a .env file in the root of the project that has the following variables:
 
 ```
-TABLEAU_SERVER=""
-TABLEAU_SITE=""
-TABLEAU_USER=""
-TABLEAU_PWD=""
+# Tableau Server variables
+TABLEAU_SERVER=
+TABLEAU_SITE=
+TABLEAU_USER=
+TABLEAU_PWD=
 
-DB_SERVER=""
-DB=""
-DB_USER=""
-DB_PWD=""
-DB_QUERY=""
+# Database variables
+DB_SERVER=
+DB=
+DB_USER=
+DB_PWD=
+DB_QUERY=
 
-GMAIL_USER=""
-GMAIL_PWD=""
-SLACK_EMAIL=""
+# Mailgun variables
+MG_API_KEY=
+MG_API_URL=
+MG_DOMAIN=
 
-OAUTH_CLIENT_ID=""
-OAUTH_CLIENT_SECRET=""
+# Email Variables
+ENABLE_MAILER=1                                                                   
+SENDER_EMAIL=
+SENDER_PWD= 
+RECIPIENT_EMAIL=
+
 GDRIVE_FOLDER=""
 ```
 
