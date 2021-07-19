@@ -7,8 +7,24 @@ from PyPDF2 import PdfFileWriter, PdfFileReader
 from argparse import ArgumentParser
 import logging
 from datetime import date
+from gdrive import uploader
+import sys
 
 # TODO: update mailer to use Mailgun
+def set_logging():
+    """Configure logging level and outputs"""
+    logging.basicConfig(
+        handlers=[
+            logging.FileHandler(filename="app.log", mode="w+"),
+            logging.StreamHandler(sys.stdout),
+        ],
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s: %(message)s",
+        datefmt="%Y-%m-%d %I:%M:%S%p %Z",
+    )
+    logging.getLogger("googleapiclient").setLevel(logging.ERROR)
+    logging.getLogger("tableauserverclient").setLevel(logging.ERROR)
+    logging.getLogger("tableau").setLevel(logging.ERROR)
 
 
 class MissingSchoolArgument(Exception):
@@ -100,7 +116,7 @@ def merge_pdfs(school_name, pdfs):
     with open(filename, "wb") as fh:
         pdf_writer.write(fh)
 
-    return len(pdfs)
+    return filename
 
 
 def cleanup(files):
@@ -114,16 +130,18 @@ def download_all_pdfs(students):
     for key, row in students.items():
         school, grade, student_number, name = row.values()
         Tableau().download_pdf(student_number, grade, name)
-        print(f"Saved {name} ({student_number}) profile to pdf {key+1}/{total}")
+        logging.info(f"Saved {name} ({student_number}) profile to pdf {key+1}/{total}")
 
 
 def main():
+    set_logging()
     ARGS = get_args()
     students = get_students(ARGS.school, ARGS.grade)
     download_all_pdfs(students)
     pdfs = glob("output/*.pdf")
     pdfs.sort()
-    merge_pdfs(ARGS.school, pdfs)
+    final_pdf = merge_pdfs(ARGS.school, pdfs)
+    uploader(final_pdf)
     cleanup(pdfs)
 
 

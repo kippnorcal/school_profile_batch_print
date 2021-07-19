@@ -4,3 +4,5 @@ output/*.*
 !output/.gitkeep
 __pycache__/
 credentials.json
+settings.yaml
+*.log
