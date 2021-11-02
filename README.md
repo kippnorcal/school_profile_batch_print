@@ -15,26 +15,22 @@ Uses tabcmd to batch print PDFs of the Student Profile Report for an entire scho
 1. Clone this repo
 
 ```
-$ git clone student_profile_batch_printer
+$ git clone https://github.com/kippnorcal/school_profile_batch_print.git
 ```
 
-2. Install Pipenv
-
-```
-$ pip install pipenv
-$ pipenv install
-```
-
-3. Install Docker
+2. Install Docker
 
 * **Mac**: [https://docs.docker.com/docker-for-mac/install/](https://docs.docker.com/docker-for-mac/install/)
 * **Linux**: [https://docs.docker.com/install/linux/docker-ce/debian/](https://docs.docker.com/install/linux/docker-ce/debian/)
 * **Windows**: [https://docs.docker.com/docker-for-windows/install/](https://docs.docker.com/docker-for-windows/install/)
 
+3. Get service account key file
+Save the file as service_account_credentials.json.
+
 4. Build Docker Image
 
 ```
-$ docker build -t tab_pdf .
+$ docker build -t school_profile .
 ```
 
 5. Create .env file with project secrets
@@ -46,6 +42,9 @@ TABLEAU_SERVER=
 TABLEAU_SITE=
 TABLEAU_USER=
 TABLEAU_PWD=
+
+# Google Developer Service Account
+ACCOUNT_EMAIL=
 
 # Database variables
 DB_SERVER=
@@ -75,13 +74,13 @@ Run in detached mode (runs as background process) with the output folder mapped 
 Run for entire school (production use):
 
 ```
-$ docker run -d -v ${PWD}/output:/app/output --name=tab_pdf tab_pdf "School Name"
+$ docker run -d -v ${PWD}/output:/app/output school_profile --school "School Name"
 ```
 
 Run for a subset of records at a school (testing purposes)
 
 ```
-$ docker run -d -v ${PWD}/output:/app/output --name=tab_pdf tab_pdf "School Name" "10"
+$ docker run -d -v ${PWD}/output:/app/output school_profile --school "School Name" --grade "10"
 ```
 
 ### School Names
